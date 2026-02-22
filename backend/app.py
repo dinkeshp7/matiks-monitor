@@ -22,6 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def map_sentiment(label):
+    if label == "LABEL_2":
+        return "positive"
+    if label == "LABEL_1":
+        return "neutral"
+    return "negative"
+
 # -------------------- AUTH VERIFY --------------------
 def verify_token(credentials=Depends(security)):
     token = credentials.credentials
@@ -126,3 +133,47 @@ def get_stats():
         "sentiment_distribution": dict(sentiment_counts),
         "platform_distribution": dict(platform_counts)
     }
+
+
+@app.get("/all", dependencies=[Depends(verify_token)])
+def get_all():
+    db = SessionLocal()
+
+    mentions = db.query(Mention).all()
+    reviews = db.query(Review).all()
+
+    db.close()
+
+    return {
+        "mentions": [
+            {
+                "platform": m.platform,
+                "content": m.content,
+                "sentiment": m.sentiment,
+                "timestamp": m.timestamp
+            } for m in mentions
+        ],
+        "reviews": [
+            {
+                "source": r.source,
+                "content": r.content,
+                "rating": r.rating,
+                "sentiment": r.sentiment,
+                "date": r.date
+            } for r in reviews
+        ]
+    }
+
+
+@app.get("/timeline", dependencies=[Depends(verify_token)])
+def timeline():
+    db = SessionLocal()
+
+    data = db.query(
+        func.date(Review.date),
+        func.count(Review.id)
+    ).group_by(func.date(Review.date)).all()
+
+    db.close()
+
+    return [{"date": str(d), "count": c} for d, c in data]
