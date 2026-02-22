@@ -1,4 +1,10 @@
+import sys
 import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
+import os
+from tenacity import retry, stop_after_attempt, wait_exponential
+from logger import logger
 from datetime import datetime
 from dotenv import load_dotenv
 import praw
@@ -17,12 +23,22 @@ reddit = praw.Reddit(
 
 KEYWORDS = ["matiks", "brain games", "memory app"]
 
+@retry(stop=stop_after_attempt(5), wait=wait_exponential())
 def run():
+    logger.info("Starting Reddit scrape")
+
     db = SessionLocal()
 
     for keyword in KEYWORDS:
         for post in reddit.subreddit("all").search(keyword, limit=10):
             text = post.title
+
+            existing = db.query(Mention).filter(
+                Mention.content == text
+            ).first()
+
+            if existing:
+                continue
 
             label, score = analyze(text)
 
@@ -32,7 +48,7 @@ def run():
                 content=text,
                 timestamp=datetime.utcfromtimestamp(post.created_utc),
                 sentiment=label,
-                score=score,
+                score=score
             )
 
             db.add(mention)
@@ -40,7 +56,7 @@ def run():
     db.commit()
     db.close()
 
-    print("Reddit scrape complete")
+    logger.info("Reddit scrape completed")
 
 if __name__ == "__main__":
     run()
