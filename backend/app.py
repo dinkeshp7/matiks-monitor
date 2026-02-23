@@ -5,9 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from jose import jwt
 
-from db import SessionLocal
-from models import Mention, Review
-from auth import verify, create_token, SECRET_KEY
+from backend.db import SessionLocal
+from backend.models import Mention, Review
+from backend.auth import verify, create_token, SECRET_KEY
 
 security = HTTPBearer()
 
@@ -55,7 +55,7 @@ def root():
     return {"status": "running"}
 
 # -------------------- MENTIONS --------------------
-@app.get("/mentions", dependencies=[Depends(verify_token)])
+@app.get("/mentions/", dependencies=[Depends(verify_token)])
 def get_mentions(
     platform: str | None = None,
     sentiment: str | None = None,
@@ -64,37 +64,50 @@ def get_mentions(
     end_date: str | None = None
 ):
     db = SessionLocal()
-    query = db.query(Mention)
+    try:
+        query = db.query(Mention)
 
-    if platform:
-        query = query.filter(Mention.platform == platform)
+        if platform:
+            query = query.filter(Mention.platform == platform)
 
-    if sentiment:
-        query = query.filter(Mention.sentiment == sentiment)
+        if sentiment:
+            query = query.filter(Mention.sentiment == sentiment)
 
-    if search:
-        query = query.filter(Mention.content.ilike(f"%{search}%"))
+        if search:
+            query = query.filter(Mention.content.ilike(f"%{search}%"))
 
-    if start_date:
-        query = query.filter(Mention.timestamp >= datetime.fromisoformat(start_date))
+        if start_date:
+            try:
+                start = datetime.fromisoformat(start_date)
+                query = query.filter(Mention.timestamp >= start)
+            except:
+                pass
 
-    if end_date:
-        query = query.filter(Mention.timestamp <= datetime.fromisoformat(end_date))
+        if end_date:
+            try:
+                end = datetime.fromisoformat(end_date)
+                query = query.filter(Mention.timestamp <= end)
+            except:
+                pass
 
-    data = query.order_by(Mention.timestamp.desc()).limit(200).all()
+        data = query.order_by(Mention.timestamp.desc()).limit(200).all()
 
-    db.close()
+        return [
+            {
+                "id": m.id,
+                "platform": m.platform,
+                "keyword": m.keyword,
+                "author": m.author,
+                "content": m.content,
+                "timestamp": m.timestamp,
+                "sentiment": m.sentiment,
+                "score": m.score
+            }
+            for m in data
+        ]
 
-    return [{
-        "id": m.id,
-        "platform": m.platform,
-        "author": m.author,
-        "content": m.content,
-        "timestamp": m.timestamp,
-        "sentiment": m.sentiment,
-        "score": m.score
-    } for m in data]
-
+    finally:
+        db.close()
 # -------------------- REVIEWS --------------------
 @app.get("/reviews", dependencies=[Depends(verify_token)])
 def get_reviews():
@@ -177,3 +190,16 @@ def timeline():
     db.close()
 
     return [{"date": str(d), "count": c} for d, c in data]
+
+@app.get("/keyword_stats", dependencies=[Depends(verify_token)])
+def keyword_stats():
+    db = SessionLocal()
+    try:
+        rows = db.query(
+            Mention.keyword,
+            func.count(Mention.id)
+        ).group_by(Mention.keyword).all()
+
+        return {k: v for k, v in rows}
+    finally:
+        db.close()

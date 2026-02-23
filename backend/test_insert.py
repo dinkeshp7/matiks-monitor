@@ -1,25 +1,43 @@
-from datetime import datetime
-from db import SessionLocal
-from models import Mention
-from sentiment import analyze
+from backend.db import SessionLocal
+from backend.models import Mention
+from datetime import datetime, timezone
 
 db = SessionLocal()
 
-text = "Matiks is an amazing brain game app"
+sample = [
+    Mention(
+        platform="playstore",
+        keyword="matiks",
+        author="user1",
+        content="Great brain game!",
+        timestamp=datetime.now(timezone.utc),
+        sentiment="positive",
+        score=0.9,
+    ),
+    Mention(
+        platform="appstore",
+        keyword="matiks",
+        author="user2",
+        content="Very addictive",
+        timestamp=datetime.now(timezone.utc),
+        sentiment="positive",
+        score=0.8,
+    ),
+    Mention(
+        platform="twitter",
+        keyword="matiks",
+        author="user3",
+        content="Not bad",
+        timestamp=datetime.now(timezone.utc),
+        sentiment="neutral",
+        score=0.1,
+    ),
+]
 
-label, score = analyze(text)
+for s in sample:
+    db.add(s)
 
-m = Mention(
-    platform="test",
-    author="system",
-    content=text,
-    timestamp=datetime.utcnow(),
-    sentiment=label,
-    score=score
-)
-
-db.add(m)
 db.commit()
 db.close()
 
-print("Inserted test mention")
+print("Inserted test mentions")
