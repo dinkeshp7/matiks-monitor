@@ -1,24 +1,22 @@
-import sys
 import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
-
+from tenacity import retry, stop_after_attempt, wait_exponential
 from google_play_scraper import reviews, Sort
-from db import SessionLocal
-from models import Review
-from sentiment import analyze
-from logger import logger
 
-APP_ID = os.getenv("PLAYSTORE_APP_ID")
+from backend.db import SessionLocal
+from backend.models import Review
+from backend.sentiment import analyze
+from backend.logger import logger
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_exponential())
 def run():
     logger.info("Starting Play Store scrape")
 
+    app_id = os.getenv("PLAYSTORE_APP_ID")
     db = SessionLocal()
 
     result, _ = reviews(
-        APP_ID,
+        app_id,
         lang="en",
         country="us",
         sort=Sort.NEWEST,
