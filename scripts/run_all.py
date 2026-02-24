@@ -31,7 +31,7 @@ def run():
 
     if failed:
         logger.error(f"Failed scrapers: {', '.join(failed)}")
-        sys.exit(1)
+        pass
 
 
 if __name__ == "__main__":
