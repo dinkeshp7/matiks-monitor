@@ -1,3 +1,10 @@
+- name: Debug requirements
+  run: |
+    echo "===== requirements.txt ====="
+    cat requirements.txt
+
+
+
 name: Matiks Scraper Pipeline
 
 on:
