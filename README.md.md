@@ -256,6 +256,52 @@ npm run dev
 
 ---
 
+## GitHub Actions Automation
+
+The scrape pipeline runs automatically via GitHub Actions.
+
+### Secrets
+
+Add these repository secrets: **Settings → Secrets and variables → Actions**
+
+| Secret | Description |
+|--------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDDIT_CLIENT_ID` | Reddit API client ID |
+| `REDDIT_CLIENT_SECRET` | Reddit API client secret |
+| `PLAYSTORE_APP_ID` | Google Play app ID (e.g. `com.matiks.app`) |
+| `APPSTORE_APP_ID` | Apple App Store numeric ID |
+
+### Schedule
+
+- **Cron:** `0 */6 * * *` (every 6 hours, UTC)
+- **IST:** 05:30, 11:30, 17:30, 23:30 (India Standard Time, UTC+5:30)
+
+### Manual Trigger
+
+1. Go to **Actions → Scrape Pipeline**
+2. Click **Run workflow**
+3. Select branch and run
+
+### Expected Logs
+
+```
+Pipeline started
+Starting Play Store scrape
+Fetched PlayStore reviews: 50
+Play Store scrape complete
+Starting App Store scrape
+Fetched AppStore reviews: 25
+App Store scrape complete
+Starting Reddit brand scrape
+Reddit brand scrape done
+Pipeline finished
+```
+
+On failure, the workflow exits non-zero and the run is marked failed.
+
+---
+
 ## Author
 
 Dinkesh Pal  

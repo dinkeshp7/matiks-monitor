@@ -8,8 +8,10 @@ __pycache__/
 venv/
 backend/venv/
 
-# Env files
+# Env files (never commit secrets)
 .env
+.env.local
+.env.*.local
 backend/.env
 
 # Logs

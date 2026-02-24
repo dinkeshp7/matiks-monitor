@@ -30,7 +30,6 @@ def run():
                         text=post.title,
                         timestamp=datetime.utcfromtimestamp(post.created_utc)
                     )
-                    print("FOUND:", post.title)
 
             except Exception as e:
                 logger.error(f"Reddit error for {keyword}: {e}")

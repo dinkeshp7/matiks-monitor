@@ -1,4 +1,4 @@
-name: Scrape Pipeline
+name: Matiks Scraper Pipeline
 
 on:
   workflow_dispatch:
@@ -10,30 +10,36 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      PYTHONUNBUFFERED: "1"
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
       REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
       REDDIT_USER_AGENT: matiks-monitor
+      PLAYSTORE_APP_ID: ${{ secrets.PLAYSTORE_APP_ID }}
+      APPSTORE_APP_ID: ${{ secrets.APPSTORE_APP_ID }}
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
       - name: Cache pip
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
-          pip install -r backend/requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run scraper
+      - name: Run scraper pipeline
         run: |
-          python backend/scripts/reddit_scraper.py
+          python -m scripts.run_all

@@ -1,6 +1,7 @@
 import os
 from tenacity import retry, stop_after_attempt, wait_exponential
 from app_store_web_scraper import AppStoreEntry
+from sqlalchemy.exc import IntegrityError
 
 from backend.db import SessionLocal
 from backend.models import Review
@@ -16,38 +17,42 @@ def run():
     country = "us"
     db = SessionLocal()
 
-    app = AppStoreEntry(app_id, country=country)
-    reviews = list(app.reviews())
+    try:
+        app = AppStoreEntry(app_id, country=country)
+        reviews_list = list(app.reviews())
+    except Exception as e:
+        logger.error(f"App Store fetch failed: {e}")
+        db.close()
+        raise
 
-    print("Fetched AppStore reviews:", len(reviews))
+    logger.info(f"Fetched AppStore reviews: {len(reviews_list)}")
 
-    for r in reviews:
+    for r in reviews_list:
         text = r.content
-
         existing = db.query(Review).filter(
+            Review.source == "appstore",
             Review.content == text
         ).first()
-
         if existing:
             continue
-
-        label, score = analyze(text)
-
-        review = Review(
-            source="appstore",
-            rating=r.rating,
-            content=text,
-            date=r.date,
-            sentiment=label,
-            score=score
-        )
-
-        db.add(review)
-
-    db.commit()
+        try:
+            label, score = analyze(text)
+            review = Review(
+                source="appstore",
+                rating=r.rating,
+                content=text,
+                date=r.date,
+                sentiment=label,
+                score=score
+            )
+            db.add(review)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            continue
     db.close()
 
-    logger.info("App Store scrape done")
+    logger.info("App Store scrape complete")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 from backend.db import engine
 from backend.models import Base
 
-print("Creating tables...")
-Base.metadata.create_all(bind=engine)
-print("Done.")
+if __name__ == "__main__":
+    Base.metadata.create_all(bind=engine)
