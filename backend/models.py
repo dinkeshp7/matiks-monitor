@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, UniqueConstraint
 from sqlalchemy.orm import declarative_base
+from datetime import datetime
 
+timestamp = Column(DateTime, default=datetime.utcnow)
 Base = declarative_base()
 
 

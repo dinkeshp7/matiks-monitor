@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useMentions } from "@/hooks/useMentions";
+import { useFilter } from "@/contexts/FilterContext";
+import { DateRangeSelect } from "@/components/ui/date-range-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,8 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { MessageSquare, Download } from "lucide-react";
+import { api } from "@/lib/api";
 
 export default function MentionsPage() {
+  const { dateRange, setDateRange, getDateParams } = useFilter();
   const [search, setSearch] = useState("");
   const [platform, setPlatform] = useState<string>("all");
   const [sentiment, setSentiment] = useState<string>("all");
@@ -25,7 +31,27 @@ export default function MentionsPage() {
     sentiment?: string;
   }>({});
 
-  const { data, isLoading, error } = useMentions(appliedFilters);
+  const dateParams = getDateParams();
+  const params = { ...appliedFilters, ...dateParams };
+  const { data, isLoading, error } = useMentions(params);
+
+  async function handleExportCsv() {
+    const q = new URLSearchParams();
+    if (appliedFilters.platform) q.set("platform", appliedFilters.platform);
+    if (appliedFilters.sentiment) q.set("sentiment", appliedFilters.sentiment);
+    if (appliedFilters.search) q.set("search", appliedFilters.search);
+    if (dateParams.start_date) q.set("start_date", dateParams.start_date);
+    if (dateParams.end_date) q.set("end_date", dateParams.end_date);
+    const url = `${api.defaults.baseURL}/export/mentions?${q.toString()}`;
+    const token = localStorage.getItem("matiks_token");
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "mentions.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
   function applyFilters() {
     setAppliedFilters({
@@ -63,7 +89,8 @@ export default function MentionsPage() {
         <CardHeader>
           <CardTitle className="text-white">Filters</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-4">
+        <CardContent className="flex flex-wrap gap-4 items-center">
+          <DateRangeSelect value={dateRange} onChange={setDateRange} />
           <Input
             placeholder="Search content..."
             value={search}
@@ -101,11 +128,17 @@ export default function MentionsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-white">Results</CardTitle>
-          {data && (
-            <p className="text-sm text-white/50">{data.length} mentions</p>
-          )}
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-white">Results</CardTitle>
+            {data && (
+              <p className="text-sm text-white/50">{data.length} mentions</p>
+            )}
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -117,9 +150,11 @@ export default function MentionsPage() {
           ) : error ? (
             <p className="text-red-400">Failed to load mentions.</p>
           ) : !data?.length ? (
-            <p className="text-white/50 py-8 text-center">
-              No mentions found. Try adjusting your filters.
-            </p>
+            <EmptyState
+              icon={MessageSquare}
+              title="No mentions found"
+              description="Try adjusting your filters or date range."
+            />
           ) : (
             <div className="overflow-x-auto -mx-4 sm:mx-0">
               <table className="w-full min-w-[640px]">

@@ -12,6 +12,11 @@ export interface Mention {
 export interface Stats {
   sentiment_distribution: Record<string, number>;
   platform_distribution: Record<string, number>;
+  total_mentions?: number;
+  positive_pct?: number;
+  negative_pct?: number;
+  neutral_pct?: number;
+  mentions_last_24h?: number;
 }
 
 export interface TimelineDataPoint {

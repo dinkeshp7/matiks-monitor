@@ -8,7 +8,11 @@ interface UseMentionsParams {
   platform?: string;
   sentiment?: string;
   search?: string;
+  start_date?: string;
+  end_date?: string;
 }
+
+const REFETCH_INTERVAL = 10000;
 
 export function useMentions(params?: UseMentionsParams) {
   return useQuery<Mention[]>({
@@ -17,5 +21,6 @@ export function useMentions(params?: UseMentionsParams) {
       const { data } = await api.get<Mention[]>("/mentions/", { params });
       return data;
     },
+    refetchInterval: REFETCH_INTERVAL,
   });
 }

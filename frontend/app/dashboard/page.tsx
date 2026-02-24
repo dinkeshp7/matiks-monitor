@@ -1,5 +1,5 @@
 "use client";
-
+import { useGrowth } from "@/hooks/useGrowth"
 import { motion } from "framer-motion";
 import { useStats } from "@/hooks/useStats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 const SENTIMENT_COLORS: Record<string, string> = {
   positive: "#A3F15A",
@@ -27,6 +28,8 @@ const SENTIMENT_COLORS: Record<string, string> = {
 
 export default function OverviewPage() {
   const { data, isLoading, error } = useStats();
+  const { data: growth } = useGrowth();
+  
 
   if (isLoading) {
     return (
@@ -35,9 +38,9 @@ export default function OverviewPage() {
           <Skeleton className="h-10 w-64 mb-2" />
           <Skeleton className="h-5 w-96" />
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-40 rounded-2xl" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-32 rounded-2xl" />
           ))}
         </div>
         <div className="grid lg:grid-cols-2 gap-6">
@@ -58,9 +61,8 @@ export default function OverviewPage() {
     );
   }
 
-  const totalMentions = data
-    ? Object.values(data.platform_distribution || {}).reduce((a, b) => a + b, 0)
-    : 0;
+  const totalMentions = data?.total_mentions ?? Object.values(data?.platform_distribution || {}).reduce((a, b) => a + b, 0);
+  const growthPct = growth?.growth_percent ?? 0;
 
   const sentimentData = data?.sentiment_distribution
     ? Object.entries(data.sentiment_distribution).map(([name, value]) => ({
@@ -90,39 +92,86 @@ export default function OverviewPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-white/80 text-base font-medium">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white/80 text-sm font-medium">
               Total Mentions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold text-accent">{totalMentions}</p>
+            <p className="text-2xl font-bold text-accent">{totalMentions}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-white/80 text-base font-medium">
-              Platforms
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white/80 text-sm font-medium">
+              Positive %
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold text-white">
-              {Object.keys(data?.platform_distribution || {}).length}
+            <p className="text-2xl font-bold text-[#A3F15A]">
+              {data?.positive_pct ?? 0}%
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-white/80 text-base font-medium">
-              Sentiment Categories
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white/80 text-sm font-medium">
+              Negative %
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold text-white">
-              {Object.keys(data?.sentiment_distribution || {}).length}
+            <p className="text-2xl font-bold text-red-400">
+              {data?.negative_pct ?? 0}%
             </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white/80 text-sm font-medium">
+              Neutral %
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-slate-400">
+              {data?.neutral_pct ?? 0}%
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white/80 text-sm font-medium">
+              Last 24h
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-white">
+              {data?.mentions_last_24h ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white/80 text-sm font-medium">
+              Growth
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-1">
+            {growthPct > 0 ? (
+              <TrendingUp className="w-5 h-5 text-accent" />
+            ) : growthPct < 0 ? (
+              <TrendingDown className="w-5 h-5 text-red-400" />
+            ) : (
+              <Minus className="w-5 h-5 text-slate-400" />
+            )}
+            <span
+              className={`text-2xl font-bold ${
+                growthPct > 0 ? "text-accent" : growthPct < 0 ? "text-red-400" : "text-slate-400"
+              }`}
+            >
+              {growthPct > 0 ? "+" : ""}{growthPct}%
+            </span>
           </CardContent>
         </Card>
       </div>
@@ -143,9 +192,7 @@ export default function OverviewPage() {
                   outerRadius={100}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, value }) =>
-                    `${name}: ${value}`
-                  }
+                  label={({ name, value }) => `${name}: ${value}`}
                 >
                   {sentimentData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />

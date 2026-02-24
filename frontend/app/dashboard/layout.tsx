@@ -10,15 +10,21 @@ import {
   Hash,
   TrendingUp,
   LogOut,
+  Sparkles,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LiveIndicator } from "@/components/ui/live-indicator";
+import { JsonViewToggle } from "@/components/ui/json-view-toggle";
 import { clearToken, isAuthenticated } from "@/lib/auth";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/founder", label: "Founder Intelligence", icon: Sparkles },
   { href: "/dashboard/mentions", label: "Mentions", icon: MessageSquare },
   { href: "/dashboard/keywords", label: "Keywords", icon: Hash },
   { href: "/dashboard/timeline", label: "Timeline", icon: TrendingUp },
+  { href: "/dashboard/monitor", label: "Monitoring", icon: Monitor },
 ];
 
 export default function DashboardLayout({
@@ -41,8 +47,11 @@ export default function DashboardLayout({
     router.refresh();
   }
 
+  const isMonitor = pathname === "/dashboard/monitor";
+
   return (
     <div className="min-h-screen bg-background bg-grid-pattern bg-grid flex flex-col md:flex-row">
+      {!isMonitor && (
       <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col shrink-0">
         <div className="p-6 border-b border-white/10">
           <Link href="/dashboard">
@@ -53,7 +62,7 @@ export default function DashboardLayout({
         </div>
         <nav className="flex-1 p-4 flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-visible">
           {nav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
+            const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
             return (
               <Link key={href} href={href}>
                 <div
@@ -71,10 +80,15 @@ export default function DashboardLayout({
           })}
         </nav>
       </aside>
+      )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-white/10 flex items-center justify-between px-6">
-          <div />
+        <header className={`flex items-center justify-between px-6 ${isMonitor ? "absolute top-0 right-0 z-20" : "h-16 border-b border-white/10"}`}>
+          <div className="flex items-center gap-4">
+            {!isMonitor && <LiveIndicator />}
+            {!isMonitor && <JsonViewToggle />}
+            {isMonitor && <LiveIndicator />}
+          </div>
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" />
             Logout
